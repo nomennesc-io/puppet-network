@@ -270,15 +270,15 @@
 #
 define network::interface (
 
-  $enable                = true,
-  $ensure                = 'present',
-  $template              = "network/interface/${$facts['os']['family']}.erb",
-  $options               = undef,
-  $options_extra_redhat  = undef,
-  $options_extra_debian  = undef,
-  $options_extra_suse    = undef,
-  $interface             = $name,
-  $restart_all_nic = $facts['os']['family'] ? {
+  $enable                           = true,
+  Enum['present', 'absent'] $ensure = 'present',
+  $template                         = "network/interface/${$facts['os']['family']}.erb",
+  $options                          = undef,
+  $options_extra_redhat             = undef,
+  $options_extra_debian             = undef,
+  $options_extra_suse               = undef,
+  $interface                        = $name,
+  Boolean $restart_all_nic = $facts['os']['family'] ? {
     'RedHat' => $facts['os']['release']['major'] ? {
       '8'     => false,
       default => true,
@@ -302,7 +302,7 @@ define network::interface (
 
   ## Debian specific
   $manage_order          = '10',
-  $auto                  = true,
+  Boolean $auto          = true,
   $allow_hotplug         = undef,
   $method                = '',
   $family                = 'inet',
@@ -513,38 +513,34 @@ define network::interface (
 
   include ::network
 
-  validate_re($ensure, '^(present|absent)$', "Ensure can only be present or absent (to add or remove an interface). Current value: ${ensure}")
-  validate_bool($auto)
-  validate_bool($enable)
-  validate_bool($restart_all_nic)
-
-  validate_array($up)
-  validate_array($pre_up)
-  validate_array($down)
-  validate_array($pre_down)
-  validate_array($slaves)
-  validate_array($bond_slaves)
-  validate_array($bridge_ports)
-  validate_array($wpa_key_mgmt)
-  validate_array($wpa_group)
-  validate_array($wpa_pairwise)
-  validate_array($wpa_auth_alg)
-  validate_array($wpa_proto)
+  validate_legacy(Array, 'validate_array', $up)
+  validate_legacy(Array, 'validate_array', $pre_up)
+  validate_legacy(Array, 'validate_array', $down)
+  validate_legacy(Array, 'validate_array', $pre_down)
+  validate_legacy(Array, 'validate_array', $slaves)
+  validate_legacy(Array, 'validate_array', $bond_slaves)
+  validate_legacy(Array, 'validate_array', $bridge_ports)
+  validate_legacy(Array, 'validate_array', $wpa_key_mgmt)
+  validate_legacy(Array, 'validate_array', $wpa_group)
+  validate_legacy(Array, 'validate_array', $wpa_pairwise)
+  validate_legacy(Array, 'validate_array', $wpa_auth_alg)
+  validate_legacy(Array, 'validate_array', $wpa_proto)
 
   # $subchannels is only valid for zLinux/SystemZ/s390x.
   if $facts['architecture'] == 's390x' {
-    validate_array($subchannels)
-    validate_re($nettype, '^(qeth|lcs|ctc)$', "${name}::\$nettype may be 'qeth', 'lcs' or 'ctc' only and is set to <${nettype}>.")
+    validate_legacy(Array, 'validate_array', $subchannels)
+    validate_legacy(String, 'validate_re', $nettype,['^(qeth|lcs|ctc)$'])
+
     # Different parameters required for RHEL6 and RHEL7
     if $facts['os']['release']['major'] =~ /^7|^8/ {
       validate_string($zlinux_options)
     } else {
-      validate_re($layer2, '^0|1$', "${name}::\$layer2 must be 1 or 0 and is to <${layer2}>.")
+      validate_legacy(String, 'validate_re', $layer2, ['^0|1$'])
     }
   }
   if $facts['os']['family'] == 'RedHat' {
     if $iprule != undef {
-      validate_array($iprule)
+      validate_legacy(Array, 'validate_array', $iprule)
     }
   }
   if $arp != undef and ! ($arp in ['yes', 'no']) {
