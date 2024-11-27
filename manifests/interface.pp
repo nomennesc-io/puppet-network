@@ -345,22 +345,22 @@ define network::interface (
 
   # Convenience shortcuts
   $nonlocal_gateway      = undef,
-  $additional_networks   = [ ],
+  $additional_networks   = [],
 
   # Common ifupdown scripts
-  $up                    = [ ],
-  $pre_up                = [ ],
-  $post_up               = [ ],
-  $down                  = [ ],
-  $pre_down              = [ ],
-  $post_down             = [ ],
+  Array $up              = [],
+  Array $pre_up          = [],
+  Array $post_up         = [],
+  Array $down            = [],
+  Array $pre_down        = [],
+  Array $post_down       = [],
 
   # For virtual routing and forwarding (VRF)
   $vrf                   = undef,
   $vrf_table             = undef,
 
   # For bonding
-  $slaves                = [ ],
+  Array $slaves          = [],
   $bond_mode             = undef,
   $bond_miimon           = undef,
   $bond_downdelay        = undef,
@@ -368,7 +368,7 @@ define network::interface (
   $bond_lacp_rate        = undef,
   $bond_master           = undef,
   $bond_primary          = undef,
-  $bond_slaves           = [ ],
+  Array $bond_slaves     = [],
   $bond_xmit_hash_policy = undef,
   $bond_num_grat_arp     = undef,
   $bond_arp_all          = undef,
@@ -385,7 +385,7 @@ define network::interface (
   $team_master           = undef,
 
   # For bridging
-  $bridge_ports          = [ ],
+  Array $bridge_ports    = [],
   $bridge_stp            = undef,
   $bridge_fd             = undef,
   $bridge_maxwait        = undef,
@@ -395,11 +395,11 @@ define network::interface (
   $wpa_ssid              = undef,
   $wpa_bssid             = undef,
   $wpa_psk               = undef,
-  $wpa_key_mgmt          = [ ],
-  $wpa_group             = [ ],
-  $wpa_pairwise          = [ ],
-  $wpa_auth_alg          = [ ],
-  $wpa_proto             = [ ],
+  Array $wpa_key_mgmt    = [],
+  Array $wpa_group       = [],
+  Array $wpa_pairwise    = [],
+  Array $wpa_auth_alg    = [],
+  Array $wpa_proto       = [],
   $wpa_identity          = undef,
   $wpa_password          = undef,
   $wpa_scan_ssid         = undef,
@@ -509,40 +509,9 @@ define network::interface (
   $etherdevice           = undef,
   # also used for Suse vlan: $vlan
 
-  ) {
+) {
+  include network
 
-  include ::network
-
-  validate_legacy(Array, 'validate_array', $up)
-  validate_legacy(Array, 'validate_array', $pre_up)
-  validate_legacy(Array, 'validate_array', $down)
-  validate_legacy(Array, 'validate_array', $pre_down)
-  validate_legacy(Array, 'validate_array', $slaves)
-  validate_legacy(Array, 'validate_array', $bond_slaves)
-  validate_legacy(Array, 'validate_array', $bridge_ports)
-  validate_legacy(Array, 'validate_array', $wpa_key_mgmt)
-  validate_legacy(Array, 'validate_array', $wpa_group)
-  validate_legacy(Array, 'validate_array', $wpa_pairwise)
-  validate_legacy(Array, 'validate_array', $wpa_auth_alg)
-  validate_legacy(Array, 'validate_array', $wpa_proto)
-
-  # $subchannels is only valid for zLinux/SystemZ/s390x.
-  if $facts['architecture'] == 's390x' {
-    validate_legacy(Array, 'validate_array', $subchannels)
-    validate_legacy(String, 'validate_re', $nettype,['^(qeth|lcs|ctc)$'])
-
-    # Different parameters required for RHEL6 and RHEL7
-    if $facts['os']['release']['major'] =~ /^7|^8/ {
-      validate_string($zlinux_options)
-    } else {
-      validate_legacy(String, 'validate_re', $layer2, ['^0|1$'])
-    }
-  }
-  if $facts['os']['family'] == 'RedHat' {
-    if $iprule != undef {
-      validate_legacy(Array, 'validate_array', $iprule)
-    }
-  }
   if $arp != undef and ! ($arp in ['yes', 'no']) {
     fail('arp must be one of: undef, yes, no')
   }
@@ -677,13 +646,13 @@ define network::interface (
   # Resources
   $real_reload_command = $reload_command ? {
     undef => $facts['os']['name'] ? {
-        'CumulusLinux' => 'ifreload -a',
-        'RedHat'       => $facts['os']['release']['major'] ? {
-          '8'     => "/usr/bin/nmcli con reload ; /usr/bin/nmcli device reapply ${interface}",
-          default => "ifdown ${interface} --force ; ifup ${interface}",
-        },
-        default        => "ifdown ${interface} --force ; ifup ${interface}",
+      'CumulusLinux' => 'ifreload -a',
+      'RedHat'       => $facts['os']['release']['major'] ? {
+        '8'     => "/usr/bin/nmcli con reload ; /usr/bin/nmcli device reapply ${interface}",
+        default => "ifdown ${interface} --force ; ifup ${interface}",
       },
+      default        => "ifdown ${interface} --force ; ifup ${interface}",
+    },
     default => $reload_command,
   }
   if $restart_all_nic == false and $facts['kernel'] == 'Linux' {
@@ -698,7 +667,6 @@ define network::interface (
   }
 
   case $facts['os']['family'] {
-
     'Debian': {
       if $vlan_raw_device {
         if versioncmp('9.0', $facts['os']['release']['full']) >= 0
@@ -896,7 +864,5 @@ define network::interface (
     default: {
       alert("${$facts['os']['name']} not supported. No changes done here.")
     }
-
   }
-
 }

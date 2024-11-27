@@ -112,7 +112,7 @@ define network::route (
   Array $source    = undef,
   Array $table     = undef,
   Array $cidr      = undef,
-  Array $family    = [ 'inet4' ],
+  Array $family    = ['inet4'],
   $interface = $name,
   $ensure    = 'present'
 ) {
@@ -124,7 +124,7 @@ define network::route (
     $_cidr = build_cidr_array($netmask)
   }
 
-  include ::network
+  include network
 
   case $facts['os']['family'] {
     'RedHat': {
@@ -178,6 +178,6 @@ define network::route (
         notify  => $network::manage_config_file_notify,
       }
     }
-    default: { fail('Operating system not supported')  }
+    default: { fail('Operating system not supported') }
   }
 } # define network::route
